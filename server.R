@@ -1,8 +1,8 @@
 library(shiny)
 library(tidyverse)
 
-source('get_data.r')
-source('nba_functions.r')
+source('helpers/get_data.r')
+source('helpers/nba_functions.r')
 
 shinyServer(function(session, input, output) {
   #observe the data style radio buttons
