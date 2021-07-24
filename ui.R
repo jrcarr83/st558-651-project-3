@@ -3,9 +3,11 @@ library(shinythemes)
 library(markdown)
 
 navbarPage('NBA Boxscore Data', theme = shinytheme("cyborg"),
-  tabPanel('About'
-    
-    
+  tabPanel('About',
+     # Change the font size.
+     tags$style(type='text/css', ".selectize-input { font-size: 12px; line-height: 12px;} 
+                .selectize-dropdown { font-size: 10px; line-height: 10px; }"),
+      
   ), #tabpanel About Page
   tabPanel('Data',
     fluidRow(
@@ -32,9 +34,73 @@ navbarPage('NBA Boxscore Data', theme = shinytheme("cyborg"),
     ) #dataTable Row
            
   ), #tabpanel Data Page
-  tabPanel('Data Exploration'
-           
-           
+  tabPanel('Data Exploration',
+    sidebarLayout(
+      sidebarPanel(
+        selectInput("graph_type", "Graph style:",
+                    c("Density Plot" = "density",
+                      "Scatter Plot" = "scatter",
+                      "Box Plot" = "box") #list of vars
+                    ), #select input
+        conditionalPanel(condition=
+            "input.graph_type == 'density' || input.graph_type == 'box'",
+            selectInput("graph_var", "Variable of Interest:",
+                        c("Points Scored" = "pts",
+                          "Field Goal PCT" = "pctFG",
+                          "Total Rebounds" = "treb",
+                          "Assists" = "ast",
+                          "Steals" = "stl",
+                          "Blocks" = "blk",
+                          "Turnovers" = "tov",
+                          "Personal Fouls" = "pf") #list of vars
+                        ) #selectInput
+        ), #conditional panel
+        conditionalPanel(condition="input.graph_type == 'scatter'",
+          fluidRow(
+            column(width=6,
+              selectInput("xaxis", "X-Axis Variable:",
+                           c("Points Scored" = "pts",
+                             "Field Goal PCT" = "pctFG",
+                             "Total Rebounds" = "treb",
+                             "Assists" = "ast",
+                             "Steals" = "stl",
+                             "Blocks" = "blk",
+                             "Turnovers" = "tov",
+                             "Personal Fouls" = "pf"), #list of vars
+                          selected='pts'
+              ) #select input #1
+            ), #column first input
+            column(width=6,
+               selectInput("yaxis", "Y-Axis Variable:",
+                           c("Points Scored" = "pts",
+                             "Field Goal PCT" = "pctFG",
+                             "Total Rebounds" = "treb",
+                             "Assists" = "ast",
+                             "Steals" = "stl",
+                             "Blocks" = "blk",
+                             "Turnovers" = "tov",
+                             "Personal Fouls" = "pf"), #list of vars
+                           selected='pctFG'
+            ) #column second input  
+          )) #fluidRow #selectInput
+        ), #conditional panel
+        checkboxInput("home_away", "Fill on home/away?"),
+        checkboxInput("b2b", "Panel by back-to-back flag?"),
+        radioButtons("game_result", "Subset by Result",
+                     c('Win or Lose' = 'win_or_lose',
+                       'Wins only' = 'win_only',
+                       'Losses only' = 'loss_only') #list of choices
+        ) #radio buttons
+        
+      ), #sidebarPanel
+      mainPanel(
+        #textOutput("plot_info"),
+        plotOutput(outputId = "expl_plot"),
+        #textOutput("summary_info"),
+        column(12, style='overflow-x: scroll; font-size:10px',
+               align="center", tableOutput('summary_table'))
+      )
+    )#sidebarLayout        
   ), #tabpanel Data Exploration Page
   tabPanel('Modeling'
            
