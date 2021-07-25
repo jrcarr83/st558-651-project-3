@@ -1,6 +1,8 @@
 library(shiny)
 library(tidyverse)
 library(DT)
+library(hrbrthemes)
+library(plotly)
 
 source('helpers/get_data.r')
 source('helpers/nba_functions.r')
@@ -62,9 +64,8 @@ shinyServer(function(session, input, output) {
   #### Exploration Page
   #create plot
   joined <- get_joined_data(data)
-  
+  #output plot
   output$expl_plot <- renderPlot({
-
     #create plot
     if (input$graph_type == 'density') {
       g <- get_density_plot(joined, input$graph_var, 
@@ -82,7 +83,7 @@ shinyServer(function(session, input, output) {
     }
     g
   })
-  
+  #get summary tables
   summary_stats <- reactive({
     graph_type <- input$graph_type
     sum_stat <- NULL
@@ -102,9 +103,48 @@ shinyServer(function(session, input, output) {
       sum_stat <- tibble(rbind(xaxis, yaxis))
     }
   })
-  
+  #output the summary table
   output$summary_table <- renderTable({ 
     summary_stats()
   })
-
+  
+  reac <- reactiveValues()
+  observe({ 
+    reac$var1 =  input$graph_var
+  }) 
+  observe({ 
+    reac$var2 =  input$xaxis
+  }) 
+  observe({ 
+    reac$var3 =  input$yaxis
+  }) 
+  observe({ 
+    reac$graph_type =  input$graph_type
+  }) 
+  
+  #plot text
+  graph_text <- ''
+  sum_text <- ''
+  
+  output$plot_info <- renderText({
+    if (reac$graph_type == 'density') {
+      graph_text <- paste0('Density plot for ', reac$var1)
+    } else if (reac$graph_type == 'scatter') {
+      sum_text <- paste0('Summary information for ', reac$var2, 
+                         ' and ', reac$var3)
+    } else if (reac$graph_type == 'box') {
+      sum_text <- paste0('Summary information for ', reac$var1)
+    }
+  })
+  output$summary_info <- renderText({sum_text 
+    if (reac$graph_type == 'density') {
+      sum_text <- paste0('Summary information for ', reac$var1)
+    } else if (reac$graph_type == 'scatter') {
+      sum_text <- paste0('Summary information for ', reac$var2, 
+                         ' and ', reac$var3)
+    } else if (reac$graph_type == 'box') {
+      sum_text <- paste0('Summary information for ', reac$var1)
+    }
+    sum_text
+  })
 })

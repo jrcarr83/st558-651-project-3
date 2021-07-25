@@ -201,18 +201,19 @@ get_density_plot <- function(data, var, home_away, b2b, result) {
     data <- data %>% filter(outcomeGame == 'L')
   }
   
-  p <- ggplot(data=data, aes_string(x=var))
+  p <- ggplot(data=data, aes_string(x=var)) + theme_modern_rc()
   if (home_away) {
-    p <- p + geom_density(aes(fill=locationGame))
+    p <- p + geom_density(aes(fill=locationGame)) 
   } else {
     p <- p + geom_density()
   }
   
   if (b2b) {
-    p <- p + facet_wrap(~ isB2BSecond)
+    p <- p + facet_wrap(~ isB2BSecond) + 
+      theme(strip.text = element_text(colour = 'white'))
   }
   
-  return (p)
+  return (ggplotly(p) %>% layout(dragmode = "pan"))
   
 }
 
@@ -226,18 +227,19 @@ get_scatter_plot <- function(data, xvar, yvar,
     data <- data %>% filter(outcomeGame == 'L')
   }
   
-  p <- ggplot(data=data, aes_string(x=xvar, y=yvar))
+  p <- ggplot(data=data, aes_string(x=xvar, y=yvar)) + theme_modern_rc()
   if (home_away) {
-    p <- p + geom_point(aes(color=locationGame))
+    p <- p + geom_point(aes(color=locationGame)) 
   } else {
     p <- p + geom_point()
   }
   
   if (b2b) {
-    p <- p + facet_wrap(~ isB2BSecond)
+    p <- p + facet_wrap(~ isB2BSecond) +
+      theme(strip.text = element_text(colour = 'white'))
   }
   
-  return (p)
+  return (ggplotly(p))
   
 }
 
@@ -250,7 +252,7 @@ get_box_plot <- function(data, var, home_away, b2b, result) {
     data <- data %>% filter(outcomeGame == 'L')
   }
   
-  p <- ggplot(data=data, aes_string(y=var))
+  p <- ggplot(data=data, aes_string(y=var)) + theme_modern_rc()
   if (home_away) {
     p <- p + geom_boxplot(aes(fill=locationGame))
   } else {
@@ -258,10 +260,11 @@ get_box_plot <- function(data, var, home_away, b2b, result) {
   }
   
   if (b2b) {
-    p <- p + facet_wrap(~ isB2BSecond)
+    p <- p + facet_wrap(~ isB2BSecond) +
+      theme(strip.text = element_text(colour = 'white'))
   }
   
-  return (p)
+  return (ggplotly(p))
   
 }
 

@@ -1,6 +1,8 @@
 library(shiny)
 library(shinythemes)
 library(markdown)
+library(plotly)
+library(caret)
 
 navbarPage('NBA Boxscore Data', theme = shinytheme("cyborg"),
   tabPanel('About',
@@ -94,16 +96,29 @@ navbarPage('NBA Boxscore Data', theme = shinytheme("cyborg"),
         
       ), #sidebarPanel
       mainPanel(
-        #textOutput("plot_info"),
-        plotOutput(outputId = "expl_plot"),
-        #textOutput("summary_info"),
-        column(12, style='overflow-x: scroll; font-size:10px',
+        column(width=12,  style="color:white; font-weight:bold",
+               textOutput("plot_info")),
+        column(width=12, plotOutput(outputId = "expl_plot")),
+        column(width=12, style="color:white; font-weight:bold",
+               textOutput("summary_info")),
+        column(width=12, style='overflow-x: scroll; font-size:10px',
                align="center", tableOutput('summary_table'))
       )
     )#sidebarLayout        
   ), #tabpanel Data Exploration Page
-  tabPanel('Modeling'
-           
-           
+  tabPanel('Modeling',
+    sidebarLayout(
+      sidebarPanel(
+      ), #sidebar panel
+      mainPanel(
+        tabsetPanel(
+          tabPanel("Model Info"), 
+          tabPanel("Model Fit"), 
+          tabPanel("Prediction")
+        )
+        
+      )#main panel
+    )#sidebarlayout
+    
   ) #tabpanel Data Page
 ) #navbarpage
