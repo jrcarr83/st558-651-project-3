@@ -2,7 +2,7 @@ library(shiny)
 library(tidyverse)
 library(DT)
 library(hrbrthemes)
-library(plotly)
+library(caret)
 
 source('helpers/get_data.r')
 source('helpers/nba_functions.r')
@@ -65,7 +65,7 @@ shinyServer(function(session, input, output) {
   #create plot
   joined <- get_joined_data(data)
   #output plot
-  output$expl_plot <- renderPlot({
+  output$expl_plot <- renderPlotly({
     #create plot
     if (input$graph_type == 'density') {
       g <- get_density_plot(joined, input$graph_var, 
@@ -148,3 +148,5 @@ shinyServer(function(session, input, output) {
     sum_text
   })
 })
+
+

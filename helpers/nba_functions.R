@@ -132,7 +132,7 @@ get_joined_data <- function(data) {
   ###summarizing by home team
   team <- data %>% 
     group_by(slugTeam, dateGame, numberGameTeamSeason, 
-             isB2B, isB2BFirst, isB2BSecond, countDaysRestTeam,
+             isB2B, isB2BSecond, countDaysRestTeam,
              slugOpponent, locationGame, outcomeGame) %>%
     summarise(pts = sum(fg2m*2 + fg3m*3 + ftm),
               fgm = sum(fgm),
@@ -158,7 +158,7 @@ get_joined_data <- function(data) {
   
   opp <- data %>%
     group_by(slugTeam, dateGame, numberGameTeamSeason, 
-             isB2B, isB2BFirst, isB2BSecond, countDaysRestTeam) %>%
+             isB2B, isB2BSecond, countDaysRestTeam) %>%
     summarise(opp_pts = sum(fg2m*2 + fg3m*3 + ftm),
               opp_fgm = sum(fgm),
               opp_fga = sum(fga),
@@ -183,7 +183,6 @@ get_joined_data <- function(data) {
     rename(slugOpponent = slugTeam,
            opp_numberGameTeamSeason = numberGameTeamSeason,
            opp_isB2B = isB2B, 
-           opp_isB2BFirst = isB2BFirst, 
            opp_isB2BSecond = isB2BSecond, 
            opp_countDaysRestTeam = countDaysRestTeam)
   
@@ -213,7 +212,7 @@ get_density_plot <- function(data, var, home_away, b2b, result) {
       theme(strip.text = element_text(colour = 'white'))
   }
   
-  return (ggplotly(p) %>% layout(dragmode = "pan"))
+  return (ggplotly(p))
   
 }
 
@@ -327,4 +326,98 @@ get_summary_stats <- function(data, varname, home_away, b2b, result) {
   data <- data %>% relocate(var)
   
   return (data)
+}
+
+#this will take the data in
+#iterate through it from last date to first date
+#it will take the aggregate of the data for all dates before it
+#for each team
+#i used this to create the modeling data but the program 
+#does not call it to save time (it was saved to csv)
+aggregate_by_data <- function(data) {
+  #new data frame to store data
+  new_data <- tibble()
+  #get list of dates to iterate backwards from
+  dates <- distinct(data, dateGame) %>% arrange(desc(dateGame))
+  for (i in 1:nrow(dates)) {
+    base <- data %>% select(slugTeam, dateGame, numberGameTeamSeason,
+                            isB2B, isB2BSecond, countDaysRestTeam,
+                            slugOpponent, opp_numberGameTeamSeason,
+                            opp_isB2B, opp_isB2BSecond, 
+                            opp_countDaysRestTeam,
+                            locationGame, outcomeGame,
+                            pts, opp_pts) %>%
+              mutate(act_net_pts = (pts - opp_pts)) %>%
+              filter(dateGame == dates$dateGame[i]) %>%
+              rename(act_pts = pts,
+                     act_opp_pts = opp_pts)
+    
+    tm1 <- data %>% filter(dateGame < dates$dateGame[i]) %>%
+             group_by(slugTeam) %>%
+             summarise(pts1 = (sum(pts) - sum(opp_pts)) / n_distinct(dateGame),
+                       fgm1 = (sum(fgm) - sum(opp_fgm)) / n_distinct(dateGame),
+                       fga1 = (sum(fga) - sum(opp_fga)) / n_distinct(dateGame),
+                       pctFG1 = sum(fgm) / sum(fga),
+                       opp_pctFG1 = sum(opp_fgm) / sum(opp_fga),
+                       fg3m1 = (sum(fg3m) - sum(opp_fg3m)) / n_distinct(dateGame),
+                       fg3a1 = (sum(fg3a) - sum(opp_fg3a)) / n_distinct(dateGame), 
+                       pctFG31 = sum(fg3m) / sum(fg3a),
+                       opp_pctFG31 = sum(opp_fg3m) / sum(opp_fg3a),
+                       fg2m1 = (sum(fg2m) - sum(opp_fg2m)) / n_distinct(dateGame),
+                       fg2a1 = (sum(fg2a) - sum(opp_fg2a)) / n_distinct(dateGame), 
+                       pctFG21 = sum(fg2m) / sum(fg2a),
+                       opp_pctFG21 = sum(opp_fg2m) / sum(opp_fg2a),
+                       ftm1 = (sum(ftm) - sum(opp_ftm)) / n_distinct(dateGame),
+                       fta1 = (sum(fta) - sum(opp_fta)) / n_distinct(dateGame), 
+                       pctFT1 = sum(ftm) / sum(fta),
+                       opp_pctFT1 = sum(opp_ftm) / sum(opp_fta),
+                       oreb1 = (sum(oreb) - sum(opp_oreb)) / n_distinct(dateGame),
+                       dreb1 = (sum(dreb) - sum(opp_dreb)) / n_distinct(dateGame),
+                       treb1 = (sum(treb) - sum(opp_treb)) / n_distinct(dateGame),
+                       ast1 = (sum(ast) - sum(opp_ast)) / n_distinct(dateGame),
+                       stl1 = (sum(stl) - sum(opp_stl)) / n_distinct(dateGame),
+                       blk1 = (sum(blk) - sum(opp_blk)) / n_distinct(dateGame),
+                       tov1 = (sum(tov) - sum(opp_pf)) / n_distinct(dateGame),
+                       pf1 = (sum(pf) - sum(opp_pf)) / n_distinct(dateGame),
+                       wins1 = sum(outcomeGame == 'W'),
+                       losses1 = sum(outcomeGame == 'L')
+             )
+    tm2 <- data %>% filter(dateGame < dates$dateGame[i]) %>%
+      group_by(slugTeam) %>%
+      summarise(pts2 = (sum(pts) - sum(opp_pts)) / n_distinct(dateGame),
+                fgm2 = (sum(fgm) - sum(opp_fgm)) / n_distinct(dateGame),
+                fga2 = (sum(fga) - sum(opp_fga)) / n_distinct(dateGame),
+                pctFG2 = sum(fgm) / sum(fga),
+                opp_pctFG2 = sum(opp_fgm) / sum(opp_fga),
+                fg3m2 = (sum(fg3m) - sum(opp_fg3m)) / n_distinct(dateGame),
+                fg3a2 = (sum(fg3a) - sum(opp_fg3a)) / n_distinct(dateGame), 
+                pctFG32 = sum(fg3m) / sum(fg3a),
+                opp_pctFG32 = sum(opp_fg3m) / sum(opp_fg3a),
+                fg2m2 = (sum(fg2m) - sum(opp_fg2m)) / n_distinct(dateGame),
+                fg2a2 = (sum(fg2a) - sum(opp_fg2a)) / n_distinct(dateGame), 
+                pctFG22 = sum(fg2m) / sum(fg2a),
+                opp_pctFG22 = sum(opp_fg2m) / sum(opp_fg2a),
+                ftm2 = (sum(ftm) - sum(opp_ftm)) / n_distinct(dateGame),
+                fta2 = (sum(fta) - sum(opp_fta)) / n_distinct(dateGame), 
+                pctFT2 = sum(ftm) / sum(fta),
+                opp_pctFT2 = sum(opp_ftm) / sum(opp_fta),
+                oreb2 = (sum(oreb) - sum(opp_oreb)) / n_distinct(dateGame),
+                dreb2 = (sum(dreb) - sum(opp_dreb)) / n_distinct(dateGame),
+                treb2 = (sum(treb) - sum(opp_treb)) / n_distinct(dateGame),
+                ast2 = (sum(ast) - sum(opp_ast)) / n_distinct(dateGame),
+                stl2 = (sum(stl) - sum(opp_stl)) / n_distinct(dateGame),
+                blk2 = (sum(blk) - sum(opp_blk)) / n_distinct(dateGame),
+                tov2 = (sum(tov) - sum(opp_pf)) / n_distinct(dateGame),
+                pf2 = (sum(pf) - sum(opp_pf)) / n_distinct(dateGame),
+                wins2 = sum(outcomeGame == 'W'),
+                losses2 = sum(outcomeGame == 'L')
+      ) %>%
+      rename(slugOpponent = slugTeam)
+    
+    temp_data <- base %>%
+      inner_join(tm1, by='slugTeam') %>%
+      inner_join(tm2, by='slugOpponent')
+    new_data <- rbind(new_data, temp_data)
+  }#function for aggregating opponents
+  return(new_data)
 }

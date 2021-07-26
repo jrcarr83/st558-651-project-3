@@ -8,7 +8,7 @@ navbarPage('NBA Boxscore Data', theme = shinytheme("cyborg"),
   tabPanel('About',
      # Change the font size.
      tags$style(type='text/css', ".selectize-input { font-size: 12px; line-height: 12px;} 
-                .selectize-dropdown { font-size: 10px; line-height: 10px; }"),
+                .selectize-dropdown { font-size: 10px; line-height: 10px; }")
       
   ), #tabpanel About Page
   tabPanel('Data',
@@ -98,7 +98,7 @@ navbarPage('NBA Boxscore Data', theme = shinytheme("cyborg"),
       mainPanel(
         column(width=12,  style="color:white; font-weight:bold",
                textOutput("plot_info")),
-        column(width=12, plotOutput(outputId = "expl_plot")),
+        column(width=12, plotlyOutput(outputId = "expl_plot")),
         column(width=12, style="color:white; font-weight:bold",
                textOutput("summary_info")),
         column(width=12, style='overflow-x: scroll; font-size:10px',
@@ -109,16 +109,91 @@ navbarPage('NBA Boxscore Data', theme = shinytheme("cyborg"),
   tabPanel('Modeling',
     sidebarLayout(
       sidebarPanel(
+        fluidRow(
+          column(width=8,
+                 sliderInput("train", "Train/Test split:",
+                             min = 20, max = 80, value = 80, step = 10)
+          ),
+          column(width=4,
+            actionButton(style='background-color:#54C571; margin-top:40px',
+                         "train_button", "Split")
+          )#button to lock in training/test data split
+        ),
+        fluidRow(
+          column(width=6,
+                 numericInput("folds", "CV Folds:", 
+                              value = 5, min=2, max=10)
+          ), #slider for cv folds
+          column(width=6,
+                 numericInput("repeats", "CV Repeats:", 
+                              value = 10, min=1, max=10)
+          ) #input for cv repeats
+        ), #fluidRow for sliders
+        fluidRow(
+          column(width=1),
+          column(width=10,
+             selectInput("model_type", "Select your model type:",
+                c("Logistic Regression" = "log",
+                  "Classificaton Tree" = "class",
+                  "Random Forest" = "rf"))
+          ),
+          column(width=1)
+        ),#fluid row for model selection and 
+        fluidRow(style='text-align:left', 'Select variables to include:'),
+        fluidRow(style='height:72pt; overflow-y: scroll; font-size: 10px',
+          column(width=4, 
+            checkboxGroupInput("model_vars1", 
+                             choices = var_list$names[1:8],
+                             selected = var_list$names[1:8],
+                             label=NULL
+            )
+          ), 
+          column(width=4, 
+                checkboxGroupInput("model_vars2", 
+                                  choices = var_list$names[9:16],
+                                  selected = var_list$names[9:16],
+                                  label=NULL
+                )
+          ),
+          column(width=4, 
+                 checkboxGroupInput("model_vars3", 
+                                    choices = var_list$names[17:24],
+                                    selected = var_list$names[17:24],
+                                    label=NULL
+                 )
+          ),
+        ), #fluidRow variables
+        fluidRow(
+          column(width=4),
+          column(width=2,
+                 actionButton(style='background-color:#54C571;',
+                              "fit_button", "Fit Model")),
+          column(width=6)
+        )#fluidRow fit model button
       ), #sidebar panel
       mainPanel(
+        fluidRow(style="height:72pt;",
+          #store results from model fits in these data table
+          column(width=4
+          ),#first dataframe for logistic results
+          column(width=4
+          ),#first dataframe for classification tree results
+          column(width=4
+          )#third dataframe for random forest results
+        ), #fluid row for data tables
         tabsetPanel(
           tabPanel("Model Info"), 
-          tabPanel("Model Fit"), 
+          tabPanel("Model Fit"
+            
+                   
+                   
+                   
+          ), #tabpanel model fit
           tabPanel("Prediction")
         )
         
       )#main panel
     )#sidebarlayout
     
-  ) #tabpanel Data Page
+  ) #tabpanel modeling Page
 ) #navbarpage
