@@ -4,8 +4,9 @@ library(DT)
 library(hrbrthemes)
 library(caret)
 
-source('helpers/get_data.r')
 source('helpers/nba_functions.r')
+source('helpers/get_data.r')
+
 
 shinyServer(function(session, input, output) {
   #### Data page
@@ -147,6 +148,67 @@ shinyServer(function(session, input, output) {
     }
     sum_text
   })
+  
+  #### Model Page
+  #### Model Page
+  #### Model Page
+  #### Model Page
+  
+  #listen for the action button to split data in test/training
+  observeEvent(input$train_button, {
+    # Create a Progress object
+    progress <- shiny::Progress$new()
+    # Make sure it closes when we exit this reactive, even if there's an error
+    on.exit(progress$close())
+    
+    progress$set(message = "Splitting data...", value = 0)
+    
+    temp <- input$train
+    temp2 <- 100-input$train
+    
+    train_data <- get_training_data(model_data, input$train / 100)
+    train <- train_data$train
+    test <- train_data$test
+    rm(train_data)
+    
+    
+    popup_text <- paste0('Data split: ', temp, '% in training set and ',
+                   temp2, '% in test set.')
+    shinyalert("Training data split.", popup_text)
+    rm(temp)
+    rm(temp2)
+  })
+  
+  #listen for the action button to split data in test/training
+  observeEvent(input$fit_button, {
+    # Create a Progress object
+    progress <- shiny::Progress$new()
+    # Make sure it closes when we exit this reactive, even if there's an error
+    on.exit(progress$close())
+    
+    if (input$model_type == 'log') {
+      progress$set(message = "Fitting logistic regression model...", value = 0)
+      glm_fit <- fit_log(input$model_vars1, 
+                         input$model_vars2, 
+                         input$model_vars3,
+                         input$folds, 
+                         input$repeats)
+      print(glm_fit)
+      if (is.null(glm_fit)) {
+        shinyalert("Error with logistic model", 'User did not select any variables')
+      }
+    }
+    
+    
+    
+    
+    
+    
+    
+    
+
+  })
+  
 })
 
 

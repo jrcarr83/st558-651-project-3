@@ -3,6 +3,7 @@ library(shinythemes)
 library(markdown)
 library(plotly)
 library(caret)
+library(shinyalert)
 
 navbarPage('NBA Boxscore Data', theme = shinytheme("cyborg"),
   tabPanel('About',
@@ -109,14 +110,14 @@ navbarPage('NBA Boxscore Data', theme = shinytheme("cyborg"),
   tabPanel('Modeling',
     sidebarLayout(
       sidebarPanel(
-        fluidRow(
+        fluidRow(useShinyalert(),
           column(width=8,
                  sliderInput("train", "Train/Test split:",
                              min = 20, max = 80, value = 80, step = 10)
           ),
           column(width=4,
             actionButton(style='background-color:#54C571; margin-top:40px',
-                         "train_button", "Split")
+                         inputId = "train_button", label="Split")
           )#button to lock in training/test data split
         ),
         fluidRow(

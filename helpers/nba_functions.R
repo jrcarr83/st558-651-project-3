@@ -421,3 +421,51 @@ aggregate_by_data <- function(data) {
   }#function for aggregating opponents
   return(new_data)
 }
+
+get_training_data <- function(data, split) {
+  dates <- data$dateGame %>% unique()
+  train_num <- round(length(dates) * split)
+  train_dates <- dates[1:train_num]
+  test_dates <- dates[(train_num+1):length(dates)]
+  train <- data %>% filter(dateGame %in% train_dates)
+  test <- data %>% filter(dateGame %in% test_dates)
+  
+  return (list(train=train, test=test))
+}
+
+fit_log <- function(vars1, vars2, vars3, folds, repeats) {
+  #get list of variables to put into the model
+  vars1 <- tibble(vars1)
+  vars2 <- tibble(vars2)
+  vars3 <- tibble(vars3)
+  colnames(vars1) <- 'vars'
+  colnames(vars2) <- 'vars'
+  colnames(vars3) <- 'vars'
+  temp <- rbind(vars1, vars2, vars3)
+  user_vars <- var_list %>% filter(names %in% temp$vars)
+  rm(temp)
+  
+  if (nrow(user_vars) == 0) {
+    return (NULL)
+  }
+  
+  #iterate through list and create model statement
+  mdl_txt <- 'outcomeGame ~ '
+  for (i in 1:nrow(user_vars)) {
+    if (i != 1) {
+      mdl_txt = paste0(mdl_txt, " + ")
+    }
+    mdl_txt = paste0(mdl_txt, user_vars$vars[i])
+  }
+
+  fit.control <- trainControl(method = "repeatedcv", number = 5, repeats = 10)
+  glm.cv <- train(as.formula(mdl_txt), 
+                  data=train,
+                  preProc = c("center", "scale"),
+                  method = 'glm',
+                  family='binomial',
+                  trControl=fit.control)
+
+  return (glm.cv)
+}
+

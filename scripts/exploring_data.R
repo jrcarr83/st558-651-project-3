@@ -12,20 +12,32 @@ temp <- train %>% select(outcomeGame, pts1, pts2, wins1, losses1,
                          opp_isB2B, opp_isB2BSecond, slugTeam, 
                          slugOpponent) %>% drop_na()
 
-temp <- train %>% select(-dateGame, -act_pts, -act_opp_pts,
-                         -act_net_pts) %>% drop_na()
+mdl_txt <- 'outcomeGame ~ '
+for (i in 1:nrow(var_list)) {
+  if (i != 1) {
+    mdl_txt = paste0(mdl_txt, " + ")
+  }
+  mdl_txt = paste0(mdl_txt, var_list$vars[i])
+}
+
 library(caret)
 fit.control <- trainControl(method = "repeatedcv", number = 5, repeats = 10)
-glm.cv <- train(outcomeGame ~ ., 
-                 data=temp,
-                 preProc = c("center", "scale"),
-                 method = 'glm',
-                 family='binomial',
-                 trControl=fit.control)
+glm.cv <- train(as.formula(mdl_txt), 
+                data=train,
+                preProc = c("center", "scale"),
+                method = 'glm',
+                family='binomial',
+                trControl=fit.control)
 glm.cv
 
 
 
 fgm1	fga1	pctFG1	opp_pctFG1	fg3m1	fg3a1	pctFG31	opp_pctFG31	fg2m1	fg2a1	pctFG21	opp_pctFG21	ftm1	fta1	pctFT1	opp_pctFT1	oreb1	dreb1	treb1	ast1	stl1	blk1	tov1	pf1	wins1	losses1	pts2	fgm2	fga2	pctFG2	opp_pctFG2	fg3m2	fg3a2	pctFG32	opp_pctFG32	fg2m2	fg2a2	pctFG22	opp_pctFG22	ftm2	fta2	pctFT2	opp_pctFT2	oreb2	dreb2	treb2	ast2	stl2	blk2	tov2	pf2	wins2	losses2
 
+var_list <- rbind(tibble(input$model_vars1) %>% 
+                    rename(vars = input.model_vars1), 
+                  tibble(input$model_vars2) %>%
+                    rename(vars = input.model_vars2), 
+                  tibble(input$model_vars3) %>%
+                    rename(vars = input.model_vars3))
 
