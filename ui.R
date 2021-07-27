@@ -134,8 +134,8 @@ navbarPage('NBA Boxscore Data', theme = shinytheme("cyborg"),
           column(width=1),
           column(width=10,
              selectInput("model_type", "Select your model type:",
-                c("Logistic Regression" = "log",
-                  "Classificaton Tree" = "class",
+                c("Lasso Regression" = "lasso",
+                  "Classificaton Tree" = "tree",
                   "Random Forest" = "rf"))
           ),
           column(width=1)
@@ -173,22 +173,42 @@ navbarPage('NBA Boxscore Data', theme = shinytheme("cyborg"),
         )#fluidRow fit model button
       ), #sidebar panel
       mainPanel(
-        fluidRow(style="height:72pt;",
+        fluidRow(style="height:72pt;font-size: 10px",
           #store results from model fits in these data table
-          column(width=4
+          column(width=4,
+            tableOutput('lasso_table')
           ),#first dataframe for logistic results
-          column(width=4
+          column(width=4,
+            tableOutput('tree_table')
           ),#first dataframe for classification tree results
           column(width=4
           )#third dataframe for random forest results
         ), #fluid row for data tables
-        tabsetPanel(
-          tabPanel("Model Info"), 
-          tabPanel("Model Fit"
+        tabsetPanel(id='model_tabset',
+          tabPanel("Model Info",
             
-                   
-                   
-                   
+          ), #tabPanel modelInfo 
+          tabPanel("Model Fit", value='panel_fit',
+            fluidRow(
+              conditionalPanel(condition="input.model_type == 'lasso'",
+                column(width=1),
+                column(width=5,
+                    plotOutput(outputId = "lasso_tuning")
+                ), #column for tuning parameter 
+                column(width=5,
+                    plotOutput(outputId = "lasso_resid") 
+                ), #column for fitting vs residuals
+                column(width=1)
+              ), #lasso condition
+              conditionalPanel(condition="input.model_type == 'tree'",
+                column(width=1),
+                column(width=10,
+                  plotOutput(outputId = "tree_tuning")
+                ), #column for tuning parameter 
+                column(width=1)
+              ), #tree condition
+            ),
+            fluidRow()
           ), #tabpanel model fit
           tabPanel("Prediction")
         )

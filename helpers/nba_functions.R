@@ -433,7 +433,7 @@ get_training_data <- function(data, split) {
   return (list(train=train, test=test))
 }
 
-fit_log <- function(vars1, vars2, vars3, folds, repeats) {
+get_lasso_fit <- function(data, vars1, vars2, vars3, folds, repeats) {
   #get list of variables to put into the model
   vars1 <- tibble(vars1)
   vars2 <- tibble(vars2)
@@ -442,30 +442,86 @@ fit_log <- function(vars1, vars2, vars3, folds, repeats) {
   colnames(vars2) <- 'vars'
   colnames(vars3) <- 'vars'
   temp <- rbind(vars1, vars2, vars3)
-  user_vars <- var_list %>% filter(names %in% temp$vars)
-  rm(temp)
-  
-  if (nrow(user_vars) == 0) {
+  temp <- var_list %>% filter(names %in% temp$vars)
+  if (nrow(temp) == 0) {
     return (NULL)
   }
   
-  #iterate through list and create model statement
-  mdl_txt <- 'outcomeGame ~ '
-  for (i in 1:nrow(user_vars)) {
-    if (i != 1) {
-      mdl_txt = paste0(mdl_txt, " + ")
-    }
-    mdl_txt = paste0(mdl_txt, user_vars$vars[i])
+  user_vars <- 'act_net_pts'
+  for (i in 1:nrow(temp)) {
+    user_vars <- append(user_vars, unlist(strsplit(temp$vars[i], " ")))
   }
-
+  user_data <- train %>% select(all_of(user_vars))
+  num_vars <- ncol(user_data) - 1
+  
   fit.control <- trainControl(method = "repeatedcv", number = 5, repeats = 10)
-  glm.cv <- train(as.formula(mdl_txt), 
-                  data=train,
+  lasso.fit <- train(act_net_pts ~ .,
+                  data=user_data,
                   preProc = c("center", "scale"),
-                  method = 'glm',
-                  family='binomial',
-                  trControl=fit.control)
+                  method = 'glmnet',
+                  trControl=fit.control,
+                  tuneGrid = expand.grid(alpha = 1,
+                                         lambda = seq(0.001,0.5,by = 0.01)))
+  lasso.tune <- ggplot(lasso.fit) + theme_modern_rc() +
+    xlab('Lambda') + ylab('RMSE') + ggtitle('Tuning')  + 
+    theme(plot.title = element_text(size = 12, face = "bold"))
+  pred <- predict(lasso.fit, train)
+  pred <- data.frame(fitted = pred, residuals = pred-train$act_net_pts)
+  lasso.resid <- ggplot(data=pred, aes(x=fitted, y=residuals)) +
+    geom_point() + theme_modern_rc() +
+    xlab('Fitted') + ylab('Residuals') + ggtitle('Fitted vs Residuals') +
+    geom_hline(yintercept=0) + 
+    theme(plot.title = element_text(size = 12, face = "bold"))
 
-  return (glm.cv)
+  return (list(lasso.fit = lasso.fit, 
+               lasso.tune = lasso.tune,
+               lasso.resid = lasso.resid,
+               var_ct = num_vars))
 }
 
+get_tree_fit <- function(data, vars1, vars2, vars3, folds, repeats) {
+  #get list of variables to put into the model
+  vars1 <- tibble(vars1)
+  vars2 <- tibble(vars2)
+  vars3 <- tibble(vars3)
+  colnames(vars1) <- 'vars'
+  colnames(vars2) <- 'vars'
+  colnames(vars3) <- 'vars'
+  temp <- rbind(vars1, vars2, vars3)
+  temp <- var_list %>% filter(names %in% temp$vars)
+  if (nrow(temp) == 0) {
+    return (NULL)
+  }
+  
+  user_vars <- 'act_net_pts'
+  for (i in 1:nrow(temp)) {
+    user_vars <- append(user_vars, unlist(strsplit(temp$vars[i], " ")))
+  }
+  user_data <- train %>% select(all_of(user_vars))
+  num_vars <- ncol(user_data) - 1
+  
+  fit.control <- trainControl(method = "repeatedcv", number = 5, repeats = 10)
+  tree.fit <- train(act_net_pts ~ .,
+                     data=user_data,
+                     method = 'rpart2',
+                     trControl=fit.control,
+                     tuneGrid =expand.grid(maxdepth = 2:10))
+  tree.tune <- ggplot(tree.fit) + theme_modern_rc() +
+    xlab('Tree Depth') + ylab('RMSE') + ggtitle('Tuning')  + 
+    theme(plot.title = element_text(size = 12, face = "bold"))
+  
+  return (list(tree.fit = tree.fit, 
+               tree.tune = tree.tune,
+               var_ct = num_vars))
+}
+
+#takes in model info and keeps it in a tibble
+get_model_info <- function(fit, var_ct, model_type) {
+  if (model_type == 'lasso') {
+    model_info <- tibble(var_ct, fit$bestTune$lambda, getTrainPerf(fit)$TrainRMSE)
+  } else if (model_type == 'tree') {
+    model_info <- tibble(var_ct, fit$bestTune$maxDepth, getTrainPerf(fit)$TrainRMSE)
+  }
+  colnames(model_info) <- c('# of Vars', 'Max Depth', 'RMSE')
+  return (model_info)
+}

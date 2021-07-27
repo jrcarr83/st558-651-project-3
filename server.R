@@ -170,8 +170,7 @@ shinyServer(function(session, input, output) {
     train <- train_data$train
     test <- train_data$test
     rm(train_data)
-    
-    
+  
     popup_text <- paste0('Data split: ', temp, '% in training set and ',
                    temp2, '% in test set.')
     shinyalert("Training data split.", popup_text)
@@ -181,31 +180,50 @@ shinyServer(function(session, input, output) {
   
   #listen for the action button to split data in test/training
   observeEvent(input$fit_button, {
+    #if the user is not on the model selection tab, switch
+    updateTabsetPanel(session, "model_tabset",
+                      selected = "panel_fit")
+    
     # Create a Progress object
     progress <- shiny::Progress$new()
     # Make sure it closes when we exit this reactive, even if there's an error
     on.exit(progress$close())
     
-    if (input$model_type == 'log') {
-      progress$set(message = "Fitting logistic regression model...", value = 0)
-      glm_fit <- fit_log(input$model_vars1, 
-                         input$model_vars2, 
-                         input$model_vars3,
-                         input$folds, 
-                         input$repeats)
-      print(glm_fit)
-      if (is.null(glm_fit)) {
-        shinyalert("Error with logistic model", 'User did not select any variables')
-      }
+    ###lasso in progress yo
+    progress$set(message = "Fitting lasso regression model...", value = 0)
+    lasso_fit <- get_lasso_fit(input$model_vars1, 
+                               input$model_vars2, 
+                               input$model_vars3,
+                               input$folds, 
+                               input$repeats)
+    lasso_mod <- lasso_fit$lasso.fit
+      
+    lasso_info <- get_model_info(lasso_fit$lasso.fit, 
+                                 lasso_fit$var_ct,
+                                'lasso')
+    if (is.null(lasso_fit)) {
+      shinyalert("Error with lasso model", 'User did not select any variables')
     }
     
+    ###regression tree in progress yo
+    progress$set(message = "Fitting regression tree...", value = 0)
+    tree_fit <- get_tree_fit(input$model_vars1, 
+                               input$model_vars2, 
+                               input$model_vars3,
+                               input$folds, 
+                               input$repeats)
+    tree_mod <- tree_fit$tree.fit
+    
+    tree_info <- get_model_info(lasso_fit$lasso.fit, 
+                                 lasso_fit$var_ct,
+                                 'lasso')
     
     
-    
-    
-    
-    
-    
+    output$lasso_tuning <- renderPlot({lasso_fit$lasso.tune})
+    output$tree_tuning <- renderPlot({tree_fit$tree.tune})
+    output$lasso_resid <- renderPlot({lasso_fit$lasso.resid})
+    output$lasso_table <- renderTable(lasso_info)
+    output$tree_table <- renderTable(tree_info)
 
   })
   
