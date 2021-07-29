@@ -3,10 +3,9 @@ library(tidyverse)
 library(DT)
 library(hrbrthemes)
 library(caret)
+library(likert)
 
 source('helpers/nba_functions.r')
-source('helpers/get_data.r')
-
 
 shinyServer(function(session, input, output) {
   #### Data page
@@ -79,8 +78,6 @@ shinyServer(function(session, input, output) {
     } else if (input$graph_type == 'box') {
       g <- get_box_plot(joined, input$graph_var, 
                             input$home_away, input$b2b, input$game_result)
-      
-      
     }
     g
   })
@@ -167,8 +164,8 @@ shinyServer(function(session, input, output) {
     temp2 <- 100-input$train
     
     train_data <- get_training_data(model_data, input$train / 100)
-    train <- train_data$train
-    test <- train_data$test
+    train <<- train_data$train
+    test <<- train_data$test
     rm(train_data)
   
     popup_text <- paste0('Data split: ', temp, '% in training set and ',
@@ -195,9 +192,10 @@ shinyServer(function(session, input, output) {
                                input$model_vars2, 
                                input$model_vars3,
                                input$folds, 
-                               input$repeats)
-    lasso_mod <- lasso_fit$lasso.fit
-      
+                               input$repeats,
+                               var_list)
+    mod_list[[1]] <<- lasso_fit$lasso.fit  
+    print(mod_list[[1]])
     lasso_info <- get_model_info(lasso_fit$lasso.fit, 
                                  lasso_fit$var_ct,
                                 'lasso')
@@ -211,21 +209,80 @@ shinyServer(function(session, input, output) {
                                input$model_vars2, 
                                input$model_vars3,
                                input$folds, 
-                               input$repeats)
-    tree_mod <- tree_fit$tree.fit
+                               input$repeats,
+                               var_list)
+    mod_list[[2]] <<- tree_fit$tree.fit
+    tree_info <- get_model_info(tree_fit$tree.fit, 
+                                 tree_fit$var_ct,
+                                 'tree')
+    ###rf in progress yo
+    progress$set(message = "Fitting random forest model (be patient)...", value = 0)
+    rf_fit <- get_rf_fit(input$model_vars1, 
+                         input$model_vars2, 
+                         input$model_vars3,
+                         input$folds, 
+                         input$repeats,
+                         var_list)
     
-    tree_info <- get_model_info(lasso_fit$lasso.fit, 
-                                 lasso_fit$var_ct,
-                                 'lasso')
+    mod_list[[3]] <<- rf_fit$rf.fit
+    rf_info <- get_model_info(rf_fit$rf.fit, 
+                              rf_fit$var_ct,
+                              'rf')
     
-    
+    #plots
     output$lasso_tuning <- renderPlot({lasso_fit$lasso.tune})
-    output$tree_tuning <- renderPlot({tree_fit$tree.tune})
     output$lasso_resid <- renderPlot({lasso_fit$lasso.resid})
+    output$tree_tuning <- renderPlot({tree_fit$tree.tune})
+    output$rf_tuning <- renderPlot({rf_fit$rf.tune})
+    
     output$lasso_table <- renderTable(lasso_info)
     output$tree_table <- renderTable(tree_info)
+    output$rf_table <- renderTable(rf_info)
+    
 
-  })
+  }) #fitbutton
+  
+  observeEvent(input$pred_button, {
+    # Create a Progress object
+    progress <- shiny::Progress$new()
+    # Make sure it closes when we exit this reactive, even if there's an error
+    on.exit(progress$close())
+    
+    #check if models are null, if so, print error to user and quit
+    if (is.na(mod_list[[1]])) {
+      shinyalert("Error predicting", 'You have not trained any models yet!')
+    } else {
+      ###predicting
+      progress$set(message = "Predicting...", value = 0)
+      if (input$radio_model == 'lasso') {
+        results <- get_pred_results(mod_list[[1]])
+      } else if (input$radio_model == 'tree') {
+        results <- get_pred_results(mod_list[[2]])
+      } else if (input$radio_model == 'rf') {
+        results <- get_pred_results(mod_list[[3]])
+      } 
+      
+      #get confusion matrix
+      cm_plot <- get_cm_plot(results)
+      #get results table
+      result_tbl <- get_outcome_tbl(results)
+      
+      col_names <- c('Date', 'Team', 'Opp', 'Guess',
+                     'Prediction', 'Actual', 'Pts Diff')
+      
+      output$cm_plot <- renderPlot(cm_plot)
+      output$pred_results <- DT::renderDataTable(
+                              DT::datatable(result_tbl, style='bootstrap',
+                                            colnames = col_names,
+                                            filter = c("none"),
+                                            options = list(scrollX = TRUE,
+                                                           searching = FALSE,
+                                                           lengthChange = FALSE,
+                                                           autoWidth = TRUE
+                                                           )))
+    }
+    
+  }) #predict button
   
 })
 

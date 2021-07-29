@@ -48,8 +48,21 @@ var_list <- data.frame(c("B2B First", "B2B Second", "Days Rest", "Games Played",
 colnames(var_list) <- c('names', 'vars')
 var_list <- tibble(var_list)
 
+get_training_data <- function(data, split) {
+  dates <- data$dateGame %>% unique()
+  train_num <- round(length(dates) * split)
+  train_dates <- dates[1:train_num]
+  test_dates <- dates[(train_num+1):length(dates)]
+  train <- data %>% filter(dateGame %in% train_dates)
+  test <- data %>% filter(dateGame %in% test_dates)
+  
+  return (list(train=train, test=test))
+}
+
 #stock test/training set
 temp <- get_training_data(model_data, 0.8)
 train <- temp$train
 test <- temp$test
 rm(temp)
+
+mod_list <- list('lasso' = NA, 'tree' = NA, 'rf' = NA)

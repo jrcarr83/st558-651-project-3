@@ -202,9 +202,10 @@ get_density_plot <- function(data, var, home_away, b2b, result) {
   
   p <- ggplot(data=data, aes_string(x=var)) + theme_modern_rc()
   if (home_away) {
-    p <- p + geom_density(aes(fill=locationGame)) 
+    p <- p + geom_density(aes(fill=locationGame), alpha=.4) +
+      theme(legend.title = element_blank())
   } else {
-    p <- p + geom_density()
+    p <- p + geom_density(alpha=.3)
   }
   
   if (b2b) {
@@ -212,7 +213,13 @@ get_density_plot <- function(data, var, home_away, b2b, result) {
       theme(strip.text = element_text(colour = 'white'))
   }
   
-  return (ggplotly(p))
+  p <- ggplotly(p)
+  
+  if (home_away) { 
+    p <- p  %>% layout(legend = list(orientation = "h", y=1.2, x=0.35))
+  }
+  
+  return (p)
   
 }
 
@@ -228,7 +235,8 @@ get_scatter_plot <- function(data, xvar, yvar,
   
   p <- ggplot(data=data, aes_string(x=xvar, y=yvar)) + theme_modern_rc()
   if (home_away) {
-    p <- p + geom_point(aes(color=locationGame)) 
+    p <- p + geom_point(aes(color=locationGame)) +
+      theme(legend.title = element_blank())
   } else {
     p <- p + geom_point()
   }
@@ -238,7 +246,13 @@ get_scatter_plot <- function(data, xvar, yvar,
       theme(strip.text = element_text(colour = 'white'))
   }
   
-  return (ggplotly(p))
+  p <- ggplotly(p)
+  
+  if (home_away) { 
+    p <- p  %>% layout(legend = list(orientation = "h", y=1.2, x=0.35))
+  }
+  
+  return (p)
   
 }
 
@@ -253,7 +267,8 @@ get_box_plot <- function(data, var, home_away, b2b, result) {
   
   p <- ggplot(data=data, aes_string(y=var)) + theme_modern_rc()
   if (home_away) {
-    p <- p + geom_boxplot(aes(fill=locationGame))
+    p <- p + geom_boxplot(aes(x=locationGame, fill=locationGame)) +
+      theme(legend.title = element_blank())
   } else {
     p <- p + geom_boxplot()
   }
@@ -263,7 +278,13 @@ get_box_plot <- function(data, var, home_away, b2b, result) {
       theme(strip.text = element_text(colour = 'white'))
   }
   
-  return (ggplotly(p))
+  p <- ggplotly(p)
+  
+  if (home_away) { 
+    p <- p  %>% layout(legend = list(orientation = "h", y=1.2, x=0.35))
+  }
+  
+  return (p)
   
 }
 
@@ -422,18 +443,8 @@ aggregate_by_data <- function(data) {
   return(new_data)
 }
 
-get_training_data <- function(data, split) {
-  dates <- data$dateGame %>% unique()
-  train_num <- round(length(dates) * split)
-  train_dates <- dates[1:train_num]
-  test_dates <- dates[(train_num+1):length(dates)]
-  train <- data %>% filter(dateGame %in% train_dates)
-  test <- data %>% filter(dateGame %in% test_dates)
-  
-  return (list(train=train, test=test))
-}
 
-get_lasso_fit <- function(data, vars1, vars2, vars3, folds, repeats) {
+get_lasso_fit <- function(vars1, vars2, vars3, folds, repeats, var_list) {
   #get list of variables to put into the model
   vars1 <- tibble(vars1)
   vars2 <- tibble(vars2)
@@ -454,7 +465,7 @@ get_lasso_fit <- function(data, vars1, vars2, vars3, folds, repeats) {
   user_data <- train %>% select(all_of(user_vars))
   num_vars <- ncol(user_data) - 1
   
-  fit.control <- trainControl(method = "repeatedcv", number = 5, repeats = 10)
+  fit.control <- trainControl(method = "repeatedcv", number = folds, repeats = repeats)
   lasso.fit <- train(act_net_pts ~ .,
                   data=user_data,
                   preProc = c("center", "scale"),
@@ -479,7 +490,7 @@ get_lasso_fit <- function(data, vars1, vars2, vars3, folds, repeats) {
                var_ct = num_vars))
 }
 
-get_tree_fit <- function(data, vars1, vars2, vars3, folds, repeats) {
+get_tree_fit <- function(vars1, vars2, vars3, folds, repeats, var_list) {
   #get list of variables to put into the model
   vars1 <- tibble(vars1)
   vars2 <- tibble(vars2)
@@ -500,7 +511,7 @@ get_tree_fit <- function(data, vars1, vars2, vars3, folds, repeats) {
   user_data <- train %>% select(all_of(user_vars))
   num_vars <- ncol(user_data) - 1
   
-  fit.control <- trainControl(method = "repeatedcv", number = 5, repeats = 10)
+  fit.control <- trainControl(method = "repeatedcv", number = folds, repeats = repeats)
   tree.fit <- train(act_net_pts ~ .,
                      data=user_data,
                      method = 'rpart2',
@@ -515,13 +526,138 @@ get_tree_fit <- function(data, vars1, vars2, vars3, folds, repeats) {
                var_ct = num_vars))
 }
 
+#random forest let's gooo
+get_rf_fit <- function(vars1, vars2, vars3, folds, repeats, var_list) {
+  #get list of variables to put into the model
+  vars1 <- tibble(vars1)
+  vars2 <- tibble(vars2)
+  vars3 <- tibble(vars3)
+  colnames(vars1) <- 'vars'
+  colnames(vars2) <- 'vars'
+  colnames(vars3) <- 'vars'
+  temp <- rbind(vars1, vars2, vars3)
+  temp <- var_list %>% filter(names %in% temp$vars)
+  if (nrow(temp) == 0) {
+    return (NULL)
+  }
+  
+  user_vars <- 'act_net_pts'
+  for (i in 1:nrow(temp)) {
+    user_vars <- append(user_vars, unlist(strsplit(temp$vars[i], " ")))
+  }
+  user_data <- train %>% select(all_of(user_vars))
+  num_vars <- ncol(user_data) - 1
+  mtry <- round(sqrt(num_vars))
+  tunegrid <- expand.grid(.mtry = seq(mtry-4, mtry+4, by=1))
+  
+  folds <- max(folds, 3)
+  fit.control <- trainControl(method = "cv", number = folds)
+  
+  rf.fit <- train(act_net_pts ~ .,
+                    data=user_data,
+                    method = 'rf',
+                    trControl=fit.control,
+                    tuneGrid =tunegrid)
+  rf.tune <- ggplot(rf.fit) + theme_modern_rc() +
+    xlab('mtry') + ylab('RMSE') + ggtitle('Tuning')  + 
+    theme(plot.title = element_text(size = 12, face = "bold"))
+  
+  return (list(rf.fit = rf.fit, 
+               rf.tune = rf.tune,
+               var_ct = num_vars))
+}
+
+get_cm_plot <- function(results) {
+  cm <- confusionMatrix(results$pred_outcome, results$outcomeGame)
+  cm_d <- as.data.frame(cm$table) # extract the confusion matrix values as data.frame
+  cm_st <-data.frame(cm$overall) # confusion matrix statistics as data.frame
+  cm_st$cm.overall <- round(cm_st$cm.overall,2) # round the values
+  cm_d$diag <- cm_d$Prediction == cm_d$Reference # Get the Diagonal
+  cm_d$ndiag <- cm_d$Prediction != cm_d$Reference # Off Diagonal     
+  cm_d[cm_d == 0] <- NA # Replace 0 with NA for white tiles
+  cm_d$Reference <-  reverse.levels(cm_d$Reference) # diagonal starts at top left
+  cm_d$ref_freq <- cm_d$Freq * ifelse(is.na(cm_d$diag),-1,1)
+  
+  plt1 <-  ggplot(data = cm_d, aes(x = Prediction , y =  Reference, fill = Freq))+
+    scale_x_discrete(position = "top") +
+    geom_tile( data = cm_d,aes(fill = ref_freq)) +
+    scale_fill_gradient2(guide = FALSE ,low="#9F000F",high="#54C571", midpoint = 0,na.value = 'white') +
+    geom_text(aes(label = Freq), color = 'black', size = 3)+
+    theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+          legend.position = "none",
+          panel.border = element_blank(),
+          plot.background = element_blank(),
+          axis.line = element_blank()) +
+    ggtitle('Confusion matrix of game result') +
+    theme_modern_rc() + theme(plot.title = element_text(size = 12, face = "bold"))
+
+  return (plt1)
+}
+
+get_outcome_tbl <- function(results) {
+  results$guess <- if_else(results$pred_outcome == 'W', 'beat', 'lose')
+  results$truth <- if_else(results$outcomeGame == 'W', 'beat', 'lose')
+  results$cmp <- as.factor(if_else(results$guess == results$truth, 'Correct Guess', 'Incorrect Guess'))
+  results$pt_diff <- abs(results$act_net_pts - results$pred)
+  
+  
+  tbl <- results %>% 
+              mutate(my_pred = paste0('The model predicted ',
+                                      results$slugTeam,
+                                      ' would ',
+                                      results$guess,
+                                      ' ',
+                                      results$slugOpponent,
+                                      ' by ',
+                                      round(abs(results$pred)),
+                                      ' pts.'
+                                      ),
+                     true_event = paste0('In the actual game, ',
+                                         results$slugTeam,
+                                         ' ',
+                                         results$truth,
+                                         ' ',
+                                         results$slugOpponent,
+                                         ' by ',
+                                         round(abs(results$act_net_pts)),
+                                         ' pts.'
+                     ),
+                     outcome_diff = paste0('The model and actual results differed by  ',
+                                           round(abs(results$pt_diff)),
+                                           ' pts.')
+              ) %>%
+    select(dateGame, slugTeam, slugOpponent, cmp, my_pred, true_event, outcome_diff)
+  
+  return (tbl)
+}
+
 #takes in model info and keeps it in a tibble
 get_model_info <- function(fit, var_ct, model_type) {
   if (model_type == 'lasso') {
     model_info <- tibble(var_ct, fit$bestTune$lambda, getTrainPerf(fit)$TrainRMSE)
+    colnames(model_info) <- c('# of Vars', 'Lambda', 'RMSE')
   } else if (model_type == 'tree') {
-    model_info <- tibble(var_ct, fit$bestTune$maxDepth, getTrainPerf(fit)$TrainRMSE)
+    model_info <- tibble(var_ct, fit$bestTune$maxdepth, getTrainPerf(fit)$TrainRMSE)
+    colnames(model_info) <- c('# of Vars', 'Max Depth', 'RMSE')
+  } else if (model_type == 'rf') {
+    model_info <- tibble(var_ct, fit$bestTune$mtry, getTrainPerf(fit)$TrainRMSE)
+    colnames(model_info) <- c('# of Vars', 'Mtry', 'RMSE')
   }
-  colnames(model_info) <- c('# of Vars', 'Max Depth', 'RMSE')
   return (model_info)
+}
+
+#pass this function a fit and it will return the prediction results
+get_pred_results <- function(fit) {
+  pred <- predict(fit, test)
+  results <- test %>% select(slugTeam,
+                             slugOpponent,
+                             dateGame,
+                             act_net_pts,
+                             outcomeGame)
+  results$pred <- pred
+  results <- results %>% 
+              mutate(pred_outcome = 
+                       if_else(pred > 0, 'W', 'L'))  
+  results$pred_outcome <- as.factor(results$pred_outcome)
+  return (results)
 }
