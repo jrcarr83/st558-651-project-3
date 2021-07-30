@@ -284,6 +284,16 @@ shinyServer(function(session, input, output) {
     
   }) #predict button
   
+  output$nba_bg <- renderImage({
+    # Return a list containing the filename
+    list(src = 'img/nba.jpg',
+         contentType = 'image/png',
+         width='100%',
+         margin='0px',
+         padding='0px',
+         alt = "This is alternate text - don't fail me if this shows up")
+  }, deleteFile = FALSE)
+  
 })
 
 

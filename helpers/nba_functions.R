@@ -577,6 +577,7 @@ get_cm_plot <- function(results) {
   cm_d[cm_d == 0] <- NA # Replace 0 with NA for white tiles
   cm_d$Reference <-  reverse.levels(cm_d$Reference) # diagonal starts at top left
   cm_d$ref_freq <- cm_d$Freq * ifelse(is.na(cm_d$diag),-1,1)
+  accuracy <- round(cm$overall['Accuracy'] * 100)
   
   plt1 <-  ggplot(data = cm_d, aes(x = Prediction , y =  Reference, fill = Freq))+
     scale_x_discrete(position = "top") +
@@ -588,7 +589,7 @@ get_cm_plot <- function(results) {
           panel.border = element_blank(),
           plot.background = element_blank(),
           axis.line = element_blank()) +
-    ggtitle('Confusion matrix of game result') +
+    ggtitle(paste0('Prediction Accuracy: ', accuracy, '%')) +
     theme_modern_rc() + theme(plot.title = element_text(size = 12, face = "bold"))
 
   return (plt1)

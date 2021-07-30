@@ -46,8 +46,47 @@ model_css <- "
 navbarPage('NBA Boxscore Data', theme = shinytheme("cyborg"),
   tabPanel('About',
      # Change the font size.
+     tags$style(
+       ".shiny-image-output shiny-bound-output {
+         height:200px;
+       }"
+     ),
      tags$style(type='text/css', ".selectize-input { font-size: 12px; line-height: 12px;} 
-                .selectize-dropdown { font-size: 10px; line-height: 10px; }")
+                .selectize-dropdown { font-size: 10px; line-height: 10px; }"),
+     fluidRow(style='margin:0px',
+       imageOutput('nba_bg', height='100%')
+     ),
+     fluidRow(style="margin-top:0px; height:600px", 
+       column(width=6,
+         h5('About the Data'),
+         HTML('<p style="font-size:8pt;"<br>
+              The data was sourced from an R library package 
+              called <b>nbastatR</b>, which scrapes data from sources such as
+              NBA Stats API, Basketball Insiders, 
+              Basketball-Reference, HoopsHype, and RealGM. <br><br>
+              
+              <a href="https://www.rdocumentation.org/packages/nbastatR/versions/0.1.10131" target="_blank">
+              Link to Documentation for nbastatR</a></p>')
+       ),
+       column(width=6,
+         h5('About the App'),
+         HTML('<p style="font-size:8pt;"<br>
+            This app takes NBA box score data, summarizes it and attempts 
+            to predict the outcome of a game based on previous performance in the 
+            season.</p>
+            <ul style="font-size:8pt;">
+            <li>Data: view the data as it comes from the source. You can 
+            transform by team or player and export the data.</li>
+            <li>Data Exploration: View the data as it has been transformed
+            for modeling via plots and summary tables.</li>
+            <li>Modeling: Fit a lasso, decision tree, and random forest 
+            model to predict whether a team will win a game.</li>
+            </ul>
+           '
+         )
+       )
+     )
+     
       
   ), #tabpanel About Page
   tabPanel('Data',
