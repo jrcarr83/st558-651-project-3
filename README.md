@@ -18,8 +18,8 @@ All packages are imported on a single R file (found in the helpers folder) calle
 *  likert: reverse-levels function in confusion matrix math
 
 Here is a line of code to install all the packages you may need:
-install.packages(c('shiny', 'tidyverse', 'shinythemes', 'markdown', 'plotly',
-                   'shinyalert', 'DT', 'hrbrthemes', 'caret', 'likert'))
+`install.packages(c('shiny', 'tidyverse', 'shinythemes', 'markdown', 'plotly',
+                   'shinyalert', 'DT', 'hrbrthemes', 'caret', 'likert'))`
 
 ## Shiny App Description
 There are four main tabs:
@@ -30,6 +30,6 @@ There are four main tabs:
 
 ## Running the App
 The user can paste the following code into R to run the app:
-shiny::runGitHub(repo='st558-651-project-3', 
+`shiny::runGitHub(repo='st558-651-project-3', 
                  username='jrcarr83', 
-                 ref='main')
+                 ref='main')`
