@@ -1,47 +1,6 @@
-library(shiny)
-library(tidyverse)
-library(shinythemes)
-library(markdown)
-library(plotly)
-library(caret)
-library(shinyalert)
 
+source('helpers/model_css.r')
 source('helpers/get_data.r')
-
-
-model_css <- "
-#model_type ~ .selectize-control .selectize-input {
-  min-height: 30px;
-  width:120px;
-  font-size: 10px;
-}
-
-#pred_type ~ .selectize-control .selectize-input {
-  min-height: 30px;
-  width:120px;
-  font-size: 10px;
-}
-
-#radio_model {
-  font-size: 10px;
-}
-
-#folds {
-  height: 30px;
-  width:50px;
-  font-size: 15px;
-}
-#repeats {
-  height: 30px;
-  width:50px;
-  font-size: 15px;
-}
-
-#pred_results ~ .input {
-  height:10px;
-  min_height:10px;
-}
-"
 
 navbarPage('NBA Boxscore Data', theme = shinytheme("cyborg"),
   tabPanel('About',
@@ -269,7 +228,68 @@ navbarPage('NBA Boxscore Data', theme = shinytheme("cyborg"),
                      ".nav-tabs {font-size: 10px} ")),    
         tabsetPanel(id='model_tabset', 
           tabPanel("Model Info",
+            fluidRow(style='margin:10px; font-size:12px;',
+              HTML('The data has been transformed so that each game has the net 
+                    variables for the home team and away team (i.e. the # of 
+                    points scored by the home team minus the # of points scored 
+                    by the away team. You will be able to choose the percentage 
+                    split of the training and test data, the number of folds 
+                    and times to repeat cross validation. You can also select 
+                    the variables, though each model essentially performs 
+                    variable selection for you, so it is recommended to just
+                    run the full model. The model types are listed below:)'),
+            ),
+            fluidRow(style='margin:10px; font-size:12px;',
+              withMathJax(HTML(
+                '<ul>
+                  <li>Lasso: A linear model that uses a shrinkage parameter 
+                      to assist with variable selection. We want to minimize 
+                      $$\\sum\\limits_{i = 1}^n (y_{i}-\\sum\\limits_{j}
+                      x_{ij}\\beta_{j})^2 + \\lambda\\sum\\limits_{j=1}^p
+                      |\\beta_{j}|$$ where &#955 is the shrinkage 
+                      parameter
+                  </li>
+                </ul>'
+              )) #closing HTML and mathjax
+            ), #lasso fluid row
+            fluidRow(style='margin:10px; font-size:12px;',
+              withMathJax(HTML(
+                '<ul>
+                  <li>Regression Tree: Regression trees are fit by looking for splits
+                      in the data the result in the lowest sum of squared errors:
+                      $$\\sum\\limits_{j = 1}^J \\sum\\limits_{i \\in R_j}
+                      (y_i - \\hat{y})^2$$
+                      Once the model is fit, it can be pruned back via cross-validation
+                      for variable/feature selection and to reduce over-fitting.
+                  </li>
+                </ul>'
+              )) #closing HTML and mathjax
+            ), #decison tree fluid row
+            fluidRow(style='margin:10px; font-size:12px;',
+              withMathJax(HTML(
+                '<ul>
+                  <li>Random Forest: This model uses the same logic as the decision tree
+                      discussed above, except it uses many decision trees. Here\'s how it works:
+                      <ol>
+                        <li>
+                          Bootstrap sample from the data.
+                        </li>
+                        <li>
+                          Randomly select a subset of the predictor variables from the
+                          and fit a decision tree to the bootstrapped data. Using different
+                          subsets of variables helps ensure the trees are as uncorrelated
+                          as possible.
+                        </li>
+                        <li>
+                          Repeat many times!
+                        </li>
+                      </ol>
+                  </li>
+                </ul>'
+              )) #closing HTML and mathjax
+            ) #random forest fluid row
           ), #tabPanel modelInfo 
+          
           tabPanel("Model Fit", value='panel_fit',
             fluidRow(
               conditionalPanel(condition="input.model_type == 'lasso'",

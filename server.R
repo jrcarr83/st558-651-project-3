@@ -1,10 +1,4 @@
-library(shiny)
-library(tidyverse)
-library(DT)
-library(hrbrthemes)
-library(caret)
-library(likert)
-
+source('helpers/load_packages.r')
 source('helpers/nba_functions.r')
 
 shinyServer(function(session, input, output) {
