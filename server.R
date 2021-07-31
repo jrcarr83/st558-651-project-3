@@ -1,5 +1,3 @@
-source('helpers/load_packages.r')
-source('helpers/nba_functions.r')
 
 shinyServer(function(session, input, output) {
   #### Data page
