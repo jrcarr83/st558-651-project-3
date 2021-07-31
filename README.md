@@ -17,7 +17,7 @@ All packages are imported on a single R file (found in the helpers folder) calle
 *  caret: tuning models
 *  likert: reverse-levels function in confusion matrix math
 
-Here is a line of code to install all the packages you may need:
+Here is a line of code to install all the packages you may need: 
 `install.packages(c('shiny', 'tidyverse', 'shinythemes', 'markdown', 'plotly',
                    'shinyalert', 'DT', 'hrbrthemes', 'caret', 'likert'))`
 
@@ -29,7 +29,7 @@ There are four main tabs:
 *  Modeling: The user can fit 3 models: a lasso regression, a regression tree, and a random forest model. The user can pick the training and test split ratio, the number of folds and times to repeat cross validation, and select the variables. It is defaulted to all variables since these are all feature selection and reduction models anyway. Once the models are fit, the user can pick one of the three to make predictions on the test set and see the results.
 
 ## Running the App
-The user can paste the following code into R to run the app:
+The user can paste the following code into R to run the app: 
 `shiny::runGitHub(repo='st558-651-project-3', 
                  username='jrcarr83', 
                  ref='main')`
